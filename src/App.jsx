@@ -3,7 +3,7 @@ import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   ComposedChart, BarChart, Bar, ReferenceLine, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
-import { Upload, Activity, TrendingDown, TrendingUp, Scale, AlertCircle, Info, User, CheckCircle, Heart, Zap, Layout, FileText, Droplets, Bone, Dumbbell, Grid, Pentagon, BicepsFlexed, Ruler, Printer, X, Download } from 'lucide-react';
+import { Upload, Activity, TrendingDown, TrendingUp, Scale, AlertCircle, Info, User, CheckCircle, Heart, Zap, Layout, FileText, Droplets, Bone, Dumbbell, Grid, Pentagon, Ruler, Printer, X, Download } from 'lucide-react';
 
 // --- Helper Functions & Constants ---
 
@@ -503,7 +503,7 @@ export default function HealthDashboardUltimate() {
                             
                             <div className="mt-6 pt-4 border-t border-slate-100">
                                 <div className="flex justify-between items-center mb-2">
-                                    <h4 className="text-sm font-bold flex items-center gap-2"><BicepsFlexed size={16} className="text-indigo-600 print:text-black"/> FFMI 肌肉量指數</h4>
+                                    <h4 className="text-sm font-bold flex items-center gap-2"><Dumbbell size={16} className="text-indigo-600 print:text-black"/> FFMI 肌肉量指數</h4>
                                     <span className={`text-xs px-2 py-0.5 rounded ${ffmiStatus.color} print:border print:border-slate-400`}>{ffmiStatus.label}</span>
                                 </div>
                                 <div className="relative h-6 bg-slate-100 rounded-full w-full overflow-hidden border border-slate-200 print:bg-white print:border-slate-400">
