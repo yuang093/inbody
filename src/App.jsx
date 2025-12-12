@@ -135,8 +135,6 @@ const BmiGauge = ({ bmi }) => {
     const min = 15;
     const max = 40;
     const percent = Math.min(Math.max(((bmi - min) / (max - min)) * 100, 0), 100);
-    
-    // Positioning for labels based on scale 15-40
     const getPos = (val) => ((val - min) / (max - min)) * 100;
 
     return (
@@ -148,15 +146,12 @@ const BmiGauge = ({ bmi }) => {
                 <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-zinc-800 mx-auto"></div>
             </div>
             
-            {/* Gradient Bar */}
             <div className="h-6 w-full rounded-full bg-gradient-to-r from-blue-400 via-emerald-400 via-amber-400 to-rose-500 relative overflow-hidden shadow-inner">
-                {/* Tick Marks */}
                 {[18.5, 24, 27, 30, 35].map(val => (
                      <div key={val} className="absolute top-0 bottom-0 w-0.5 bg-white/50" style={{ left: `${getPos(val)}%` }}></div>
                 ))}
             </div>
 
-            {/* Labels */}
             <div className="relative h-6 mt-1 text-[10px] text-zinc-400 font-bold">
                 <span className="absolute transform -translate-x-1/2" style={{ left: `${getPos(18.5)}%` }}>18.5</span>
                 <span className="absolute transform -translate-x-1/2" style={{ left: `${getPos(24)}%` }}>24</span>
@@ -363,7 +358,7 @@ export default function HealthDashboardUltimate() {
       return {label: '-', color: 'bg-zinc-100'};
   }
 
-  // Radar Data (Full for Report)
+  // Radar Data (Correct Order for Chart: Top -> TL -> BL -> BR -> TR)
   const trunkTotalMass = latest.weight * 0.46;
   const armTotalMass = latest.weight * 0.06; 
   const legTotalMass = latest.weight * 0.18; 
@@ -374,6 +369,7 @@ export default function HealthDashboardUltimate() {
   const armFatKg = armTotalMass * (latest.armFatPct / 100);
   const legFatKg = legTotalMass * (latest.legFatPct / 100);
 
+  // Re-ordered Radar Data for Chart Visual (Trunk, Left Arm, Left Leg, Right Leg, Right Arm)
   const muscleRadarData = [
     { subject: '軀幹', A: latest.trunkMusclePct, massKg: trunkMuscleKg.toFixed(1) },
     { subject: '左臂', A: latest.armMusclePct, massKg: armMuscleKg.toFixed(1) },
@@ -389,6 +385,9 @@ export default function HealthDashboardUltimate() {
     { subject: '右腿', A: latest.legFatPct, massKg: legFatKg.toFixed(1) },
     { subject: '右臂', A: latest.armFatPct, massKg: armFatKg.toFixed(1) },
   ];
+
+  // Grid Mapping Order: Left Leg (2), Left Arm (1), Trunk (0), Right Arm (4), Right Leg (3)
+  const gridOrder = [2, 1, 0, 4, 3];
 
   // Dashboard Specific Data
   const triangleRadarData = [
@@ -577,13 +576,16 @@ export default function HealthDashboardUltimate() {
                                     </ResponsiveContainer>
                                 </div>
                                 <div className="grid grid-cols-5 gap-1 text-center text-[10px] mt-2">
-                                    {muscleRadarData.map((data, i) => (
-                                        <div key={i} className={`p-1 rounded-lg ${data.subject === '軀幹' ? 'bg-emerald-50 text-emerald-800' : 'bg-zinc-50'} print:bg-transparent`}>
-                                            {data.subject}<br/>
-                                            <b className="text-xs">{data.A}%</b><br/>
-                                            <span className="text-zinc-400">{data.massKg}kg</span>
-                                        </div>
-                                    ))}
+                                    {gridOrder.map((index) => {
+                                        const data = muscleRadarData[index];
+                                        return (
+                                            <div key={index} className={`p-1 rounded-lg ${data.subject === '軀幹' ? 'bg-emerald-50 text-emerald-800' : 'bg-zinc-50'} print:bg-transparent`}>
+                                                {data.subject}<br/>
+                                                <b className="text-xs">{data.A}%</b><br/>
+                                                <span className="text-zinc-400">{data.massKg}kg</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -603,13 +605,16 @@ export default function HealthDashboardUltimate() {
                                     </ResponsiveContainer>
                                 </div>
                                 <div className="grid grid-cols-5 gap-1 text-center text-[10px] mt-2">
-                                    {fatRadarData.map((data, i) => (
-                                        <div key={i} className={`p-1 rounded-lg ${data.subject === '軀幹' ? 'bg-rose-50 text-rose-800' : 'bg-zinc-50'} print:bg-transparent`}>
-                                            {data.subject}<br/>
-                                            <b className="text-xs">{data.A}%</b><br/>
-                                            <span className="text-zinc-400">{data.massKg}kg</span>
-                                        </div>
-                                    ))}
+                                    {gridOrder.map((index) => {
+                                        const data = fatRadarData[index];
+                                        return (
+                                            <div key={index} className={`p-1 rounded-lg ${data.subject === '軀幹' ? 'bg-rose-50 text-rose-800' : 'bg-zinc-50'} print:bg-transparent`}>
+                                                {data.subject}<br/>
+                                                <b className="text-xs">{data.A}%</b><br/>
+                                                <span className="text-zinc-400">{data.massKg}kg</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </Card>
