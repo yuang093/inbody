@@ -1,11 +1,4 @@
-﻿沒問題！我完全理解您的需求。
-
-這份代碼 **維持了上一版的所有設計**（包含白底的 AI 報告、修復後的第一頁詳細數據、第二頁的儀表板新功能），唯一的變動是在 **第一頁的「體液均衡」卡片** 中，加入了您指定的 **色塊標準說明**。
-
-請使用這份最終完整版代碼覆蓋 `src/App.jsx`：
-
-```javascript
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -667,6 +660,7 @@ export default function HealthDashboardUltimate() {
                     <MetricCard title="BMI" value={latest.bmi?.toFixed(1)} unit="" change={latest.bmi - first.bmi} status={getStatus('bmi', latest.bmi)} colorClass="text-cyan-600" icon={Scale} />
                 </div>
 
+                {/* AI 評估報告區塊 - White Background */}
                 <Card title="AI 綜合健康評估報告 (Comprehensive Assessment)" icon={Brain} className="mb-6 bg-white border-zinc-200 print:border-zinc-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
                         <div className="space-y-2">
@@ -788,4 +782,3 @@ export default function HealthDashboardUltimate() {
     </div>
   );
 }
-```
