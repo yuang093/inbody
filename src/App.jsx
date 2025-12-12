@@ -196,7 +196,7 @@ export default function HealthDashboardUltimate() {
     }
   `;
 
-  // --- CSV Processing (Same as before) ---
+  // --- CSV Processing ---
   useEffect(() => {
     const demoCSV = `
 "測量日期","時區","體重(kg)","體脂肪(%)","體脂肪量(kg)","內臟脂肪程度","基礎代謝(kcal)","骨骼肌(%)","骨骼肌重量(kg)","骨骼肌率（雙臂）(%)","骨骼肌率（身軀）(%)","骨骼肌率（雙腳）(%)","皮下脂肪率(%)","皮下脂肪率（雙臂）(%)","皮下脂肪率（身軀）(%)","皮下脂肪率（雙腳）(%)","BMI","身體年齡(歲)","型號"
@@ -321,7 +321,7 @@ export default function HealthDashboardUltimate() {
       return {label: '-', color: 'bg-zinc-100'};
   }
 
-  // Radar Data
+  // Radar Data - REORDERED: Trunk (Top) -> Left Arm (Top Left) -> Left Leg (Bottom Left) -> Right Leg (Bottom Right) -> Right Arm (Top Right)
   const trunkTotalMass = latest.weight * 0.46;
   const armTotalMass = latest.weight * 0.06; 
   const legTotalMass = latest.weight * 0.18; 
@@ -333,19 +333,19 @@ export default function HealthDashboardUltimate() {
   const legFatKg = legTotalMass * (latest.legFatPct / 100);
 
   const muscleRadarData = [
-    { subject: '左腿', A: latest.legMusclePct, massKg: legMuscleKg.toFixed(1) },
-    { subject: '左臂', A: latest.armMusclePct, massKg: armMuscleKg.toFixed(1) },
     { subject: '軀幹', A: latest.trunkMusclePct, massKg: trunkMuscleKg.toFixed(1) },
-    { subject: '右臂', A: latest.armMusclePct, massKg: armMuscleKg.toFixed(1) },
+    { subject: '左臂', A: latest.armMusclePct, massKg: armMuscleKg.toFixed(1) },
+    { subject: '左腿', A: latest.legMusclePct, massKg: legMuscleKg.toFixed(1) },
     { subject: '右腿', A: latest.legMusclePct, massKg: legMuscleKg.toFixed(1) },
+    { subject: '右臂', A: latest.armMusclePct, massKg: armMuscleKg.toFixed(1) },
   ];
 
   const fatRadarData = [
-    { subject: '左腿', A: latest.legFatPct, massKg: legFatKg.toFixed(1) },
-    { subject: '左臂', A: latest.armFatPct, massKg: armFatKg.toFixed(1) },
     { subject: '軀幹', A: latest.trunkFatPct, massKg: trunkFatKg.toFixed(1) },
-    { subject: '右臂', A: latest.armFatPct, massKg: armFatKg.toFixed(1) },
+    { subject: '左臂', A: latest.armFatPct, massKg: armFatKg.toFixed(1) },
+    { subject: '左腿', A: latest.legFatPct, massKg: legFatKg.toFixed(1) },
     { subject: '右腿', A: latest.legFatPct, massKg: legFatKg.toFixed(1) },
+    { subject: '右臂', A: latest.armFatPct, massKg: armFatKg.toFixed(1) },
   ];
 
   if (rawData.length === 0) return <div className="p-10 text-center text-zinc-500 animate-pulse">數據分析中...</div>;
@@ -528,11 +528,11 @@ export default function HealthDashboardUltimate() {
                                 </div>
                                 
                                 <div className="grid grid-cols-5 gap-1 text-center text-[10px] mt-2">
-                                    {[0,1,2,3,4].map((i) => (
-                                        <div key={i} className={`p-1 rounded-lg ${i===2 ? 'bg-emerald-50 text-emerald-800' : 'bg-zinc-50'} print:bg-transparent`}>
-                                            {muscleRadarData[i].subject}<br/>
-                                            <b className="text-xs">{latest[['legMusclePct','armMusclePct','trunkMusclePct','armMusclePct','legMusclePct'][i]]}%</b><br/>
-                                            <span className="text-zinc-400">{muscleRadarData[i].massKg}kg</span>
+                                    {muscleRadarData.map((data, i) => (
+                                        <div key={i} className={`p-1 rounded-lg ${data.subject === '軀幹' ? 'bg-emerald-50 text-emerald-800' : 'bg-zinc-50'} print:bg-transparent`}>
+                                            {data.subject}<br/>
+                                            <b className="text-xs">{data.A}%</b><br/>
+                                            <span className="text-zinc-400">{data.massKg}kg</span>
                                         </div>
                                     ))}
                                 </div>
@@ -555,11 +555,11 @@ export default function HealthDashboardUltimate() {
                                 </div>
 
                                 <div className="grid grid-cols-5 gap-1 text-center text-[10px] mt-2">
-                                    {[0,1,2,3,4].map((i) => (
-                                        <div key={i} className={`p-1 rounded-lg ${i===2 ? 'bg-rose-50 text-rose-800' : 'bg-zinc-50'} print:bg-transparent`}>
-                                            {fatRadarData[i].subject}<br/>
-                                            <b className="text-xs">{latest[['legFatPct','armFatPct','trunkFatPct','armFatPct','legFatPct'][i]]}%</b><br/>
-                                            <span className="text-zinc-400">{fatRadarData[i].massKg}kg</span>
+                                    {fatRadarData.map((data, i) => (
+                                        <div key={i} className={`p-1 rounded-lg ${data.subject === '軀幹' ? 'bg-rose-50 text-rose-800' : 'bg-zinc-50'} print:bg-transparent`}>
+                                            {data.subject}<br/>
+                                            <b className="text-xs">{data.A}%</b><br/>
+                                            <span className="text-zinc-400">{data.massKg}kg</span>
                                         </div>
                                     ))}
                                 </div>
