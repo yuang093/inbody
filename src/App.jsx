@@ -176,6 +176,28 @@ const BmiGauge = ({ bmi }) => {
     );
 };
 
+const CustomRadarTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white/90 backdrop-blur-sm p-3 border border-zinc-100 shadow-xl rounded-xl text-sm z-50">
+          <p className="font-bold text-zinc-800 mb-1">{data.subject}</p>
+          <div className="flex flex-col gap-1">
+             <div className="flex justify-between gap-4">
+                <span className="text-zinc-500">比例:</span>
+                <span className="font-bold text-cyan-600">{data.A}%</span>
+             </div>
+             <div className="flex justify-between gap-4">
+                <span className="text-zinc-500">重量:</span>
+                <span className="font-bold text-zinc-700">{data.massKg} kg</span>
+             </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+};
+
 // --- Main Application ---
 
 export default function HealthDashboardUltimate() {
@@ -586,12 +608,12 @@ export default function HealthDashboardUltimate() {
                         </Card>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <Card title="體型判定" icon={Grid} className="bg-zinc-800 text-white border-none print:bg-white print:text-black print:border print:border-zinc-300">
+                            <Card title="體型判定" icon={Grid} className="bg-white border-zinc-200">
                                 <div className="text-center py-6">
-                                    <div className="text-2xl font-black mb-2 tracking-wide">
+                                    <div className="text-2xl font-black mb-2 tracking-wide text-zinc-800">
                                         {latest.bmi > 30 ? '肥胖型' : latest.bmi > 24 ? (latest.bodyFatPercent > 25 ? '脂肪過多' : '肌肉型過重') : '標準型'}
                                     </div>
-                                    <div className="text-xs text-zinc-400 font-mono">BMI {latest.bmi?.toFixed(1)} / Fat {latest.bodyFatPercent}%</div>
+                                    <div className="text-xs text-zinc-500 font-mono">BMI {latest.bmi?.toFixed(1)} / Fat {latest.bodyFatPercent}%</div>
                                 </div>
                             </Card>
                             <Card title="基礎代謝" icon={Zap}>
@@ -631,42 +653,41 @@ export default function HealthDashboardUltimate() {
                     <MetricCard title="BMI" value={latest.bmi?.toFixed(1)} unit="" change={latest.bmi - first.bmi} status={getStatus('bmi', latest.bmi)} colorClass="text-cyan-600" icon={Scale} />
                 </div>
 
-                <Card title="AI 綜合健康評估報告 (Comprehensive Assessment)" icon={Brain} className="mb-6 bg-gradient-to-br from-zinc-900 to-zinc-800 text-white border-none print:bg-white print:text-black print:border print:border-zinc-300">
+                {/* AI 評估報告區塊 - White Background */}
+                <Card title="AI 綜合健康評估報告 (Comprehensive Assessment)" icon={Brain} className="mb-6 bg-white border-zinc-200 print:border-zinc-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
                         <div className="space-y-2">
-                            <h4 className="font-bold text-cyan-400 flex items-center gap-2 print:text-black"><Scale size={16}/> 體重管理</h4>
-                            <p className="text-zinc-300 leading-relaxed print:text-zinc-700">
-                                目前 BMI 為 <b className="text-white print:text-black">{latest.bmi?.toFixed(1)}</b>，屬於<b className="text-amber-400 print:text-black">{getBMICategory(latest.bmi)}</b>區間。
-                                與初期相比，體重變化 <b className={weightChange > 0 ? "text-rose-400" : "text-emerald-400"}>{weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)}kg</b>。
+                            <h4 className="font-bold text-cyan-600 flex items-center gap-2 print:text-black"><Scale size={16}/> 體重管理</h4>
+                            <p className="text-zinc-600 leading-relaxed print:text-zinc-700">
+                                目前 BMI 為 <b className="text-zinc-900 print:text-black">{latest.bmi?.toFixed(1)}</b>，屬於<b className="text-amber-500 print:text-black">{bmiCategory}</b>區間。
+                                與初期相比，體重變化 <b className={weightChange > 0 ? "text-rose-600" : "text-emerald-600"}>{weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)}kg</b>。
                             </p>
                         </div>
                         <div className="space-y-2">
-                            <h4 className="font-bold text-violet-400 flex items-center gap-2 print:text-black"><Dumbbell size={16}/> 肌肉品質</h4>
-                            <p className="text-zinc-300 leading-relaxed print:text-zinc-700">
-                                骨骼肌率為 <b className="text-white print:text-black">{latest.skeletalMusclePercent}%</b>。
-                                您的<b className="text-white print:text-black">{latest.legMusclePct > latest.armMusclePct ? '下肢' : '上肢'}</b>肌肉特別發達，這對於基礎代謝與行動力是很好的保護。
+                            <h4 className="font-bold text-violet-600 flex items-center gap-2 print:text-black"><Dumbbell size={16}/> 肌肉品質</h4>
+                            <p className="text-zinc-600 leading-relaxed print:text-zinc-700">
+                                骨骼肌率為 <b className="text-zinc-900 print:text-black">{latest.skeletalMusclePercent}%</b>。
+                                您的<b className="text-zinc-900 print:text-black">{latest.legMusclePct > latest.armMusclePct ? '下肢' : '上肢'}</b>肌肉特別發達，這對於基礎代謝與行動力是很好的保護。
                             </p>
                         </div>
                         <div className="space-y-2">
-                            <h4 className="font-bold text-emerald-400 flex items-center gap-2 print:text-black"><Zap size={16}/> 代謝效能</h4>
-                            <p className="text-zinc-300 leading-relaxed print:text-zinc-700">
-                                基礎代謝率 <b className="text-white print:text-black">{latest.bmr}</b> kcal。
-                                身體年齡為 <b className="text-white print:text-black">{latest.bodyAge}</b> 歲，
+                            <h4 className="font-bold text-emerald-600 flex items-center gap-2 print:text-black"><Zap size={16}/> 代謝效能</h4>
+                            <p className="text-zinc-600 leading-relaxed print:text-zinc-700">
+                                基礎代謝率 <b className="text-zinc-900 print:text-black">{latest.bmr}</b> kcal。
+                                身體年齡為 <b className="text-zinc-900 print:text-black">{latest.bodyAge}</b> 歲，
                                 {latest.bodyAge < first.bodyAge ? '且呈現「逆齡」趨勢，這表示您的身體組成正在改善！' : '與初期持平，建議增加肌力訓練以降低身體年齡。'}
                             </p>
                         </div>
                         <div className="space-y-2">
-                            <h4 className="font-bold text-rose-400 flex items-center gap-2 print:text-black"><AlertCircle size={16}/> 風險提示</h4>
-                            <p className="text-zinc-300 leading-relaxed print:text-zinc-700">
-                                內臟脂肪等級 <b className="text-white print:text-black">{latest.visceralFat}</b> 
+                            <h4 className="font-bold text-rose-600 flex items-center gap-2 print:text-black"><AlertCircle size={16}/> 風險提示</h4>
+                            <p className="text-zinc-600 leading-relaxed print:text-zinc-700">
+                                內臟脂肪等級 <b className="text-zinc-900 print:text-black">{latest.visceralFat}</b> 
                                 {latest.visceralFat > 15 ? ' 處於極高風險區。請務必控制精緻糖攝取並監測血壓血糖。' : latest.visceralFat > 9 ? ' 偏高，建議進行有氧運動與飲食控制。' : ' 處於標準範圍，請繼續保持。'}
                             </p>
                         </div>
                     </div>
                 </Card>
 
-                {/* --- 新增的四個圖表區塊 --- */}
-                
                 {/* 1. 代謝機能分析 */}
                 <Card title="1. 代謝機能分析 (Metabolic Analysis)" icon={Zap} className="mb-6">
                     <div className="h-[250px]">
