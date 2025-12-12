@@ -1,7 +1,8 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  ComposedChart, Line, BarChart, Bar, ReferenceLine, Cell
 } from 'recharts';
 import { Upload, Activity, TrendingDown, Scale, AlertCircle, User, Zap, Layout, Droplets, Dumbbell, Grid, Ruler, Printer, Brain } from 'lucide-react';
 
@@ -127,26 +128,52 @@ const InBodyBar = ({ label, value, unit, min, max, ideal, color = "bg-zinc-800",
   );
 };
 
-const CustomRadarTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white/90 backdrop-blur-sm p-3 border border-zinc-100 shadow-xl rounded-xl text-sm z-50">
-          <p className="font-bold text-zinc-800 mb-1">{data.subject}</p>
-          <div className="flex flex-col gap-1">
-             <div className="flex justify-between gap-4">
-                <span className="text-zinc-500">比例:</span>
-                <span className="font-bold text-cyan-600">{data.A}%</span>
-             </div>
-             <div className="flex justify-between gap-4">
-                <span className="text-zinc-500">重量:</span>
-                <span className="font-bold text-zinc-700">{data.massKg} kg</span>
-             </div>
-          </div>
+// --- Custom Components for Dashboard ---
+
+const BmiGauge = ({ bmi }) => {
+    // Scale: 15 to 40
+    const min = 15;
+    const max = 40;
+    const percent = Math.min(Math.max(((bmi - min) / (max - min)) * 100, 0), 100);
+    
+    // Positioning for labels based on scale 15-40
+    const getPos = (val) => ((val - min) / (max - min)) * 100;
+
+    return (
+        <div className="pt-8 pb-4 relative">
+            <div className="absolute -top-0 transform -translate-x-1/2 transition-all duration-500" style={{ left: `${percent}%` }}>
+                <div className="bg-zinc-800 text-white text-xs font-bold px-2 py-1 rounded mb-1 whitespace-nowrap shadow-lg">
+                    您在這裡 {bmi?.toFixed(1)}
+                </div>
+                <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-zinc-800 mx-auto"></div>
+            </div>
+            
+            {/* Gradient Bar */}
+            <div className="h-6 w-full rounded-full bg-gradient-to-r from-blue-400 via-emerald-400 via-amber-400 to-rose-500 relative overflow-hidden shadow-inner">
+                {/* Tick Marks */}
+                {[18.5, 24, 27, 30, 35].map(val => (
+                     <div key={val} className="absolute top-0 bottom-0 w-0.5 bg-white/50" style={{ left: `${getPos(val)}%` }}></div>
+                ))}
+            </div>
+
+            {/* Labels */}
+            <div className="relative h-6 mt-1 text-[10px] text-zinc-400 font-bold">
+                <span className="absolute transform -translate-x-1/2" style={{ left: `${getPos(18.5)}%` }}>18.5</span>
+                <span className="absolute transform -translate-x-1/2" style={{ left: `${getPos(24)}%` }}>24</span>
+                <span className="absolute transform -translate-x-1/2" style={{ left: `${getPos(27)}%` }}>27</span>
+                <span className="absolute transform -translate-x-1/2" style={{ left: `${getPos(30)}%` }}>30</span>
+                <span className="absolute transform -translate-x-1/2" style={{ left: `${getPos(35)}%` }}>35</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-4 text-[10px] text-zinc-500">
+                <div className="flex justify-between border-b border-zinc-100 pb-1"><span>標準範圍</span><span>18.5 - 24.0</span></div>
+                <div className="flex justify-between border-b border-zinc-100 pb-1"><span>過重</span><span>24.0 - 27.0</span></div>
+                <div className="flex justify-between border-b border-zinc-100 pb-1"><span>輕度肥胖</span><span>27.0 - 30.0</span></div>
+                <div className="flex justify-between border-b border-zinc-100 pb-1"><span>中度肥胖</span><span>30.0 - 35.0</span></div>
+                <div className="flex justify-between"><span>重度肥胖</span><span>&gt; 35.0</span></div>
+            </div>
         </div>
-      );
-    }
-    return null;
+    );
 };
 
 // --- Main Application ---
@@ -314,7 +341,7 @@ export default function HealthDashboardUltimate() {
       return {label: '-', color: 'bg-zinc-100'};
   }
 
-  // Radar Data Logic
+  // Radar Data (Full for Report)
   const trunkTotalMass = latest.weight * 0.46;
   const armTotalMass = latest.weight * 0.06; 
   const legTotalMass = latest.weight * 0.18; 
@@ -339,6 +366,20 @@ export default function HealthDashboardUltimate() {
     { subject: '左腿', A: latest.legFatPct, massKg: legFatKg.toFixed(1) },
     { subject: '右腿', A: latest.legFatPct, massKg: legFatKg.toFixed(1) },
     { subject: '右臂', A: latest.armFatPct, massKg: armFatKg.toFixed(1) },
+  ];
+
+  // Dashboard Specific Data
+  const triangleRadarData = [
+      { subject: '雙臂', A: latest.armMusclePct, fullMark: 60 },
+      { subject: '軀幹', A: latest.trunkMusclePct, fullMark: 60 },
+      { subject: '雙腳', A: latest.legMusclePct, fullMark: 60 },
+  ];
+
+  const fatBarData = [
+      { name: '全身', value: latest.subFatPercent, fill: '#f59e0b' },
+      { name: '雙臂', value: latest.armFatPct, fill: '#fbbf24' },
+      { name: '軀幹', value: latest.trunkFatPct, fill: '#d97706' },
+      { name: '雙腳', value: latest.legFatPct, fill: '#ea580c' },
   ];
 
   if (rawData.length === 0) return <div className="p-10 text-center text-zinc-500 animate-pulse">數據分析中...</div>;
@@ -395,7 +436,7 @@ export default function HealthDashboardUltimate() {
 
       <div className="print-container">
 
-        {/* --- PAGE 1: REPORT VIEW (Restored Original Features) --- */}
+        {/* --- PAGE 1: REPORT VIEW (Classic Full Report) --- */}
         <div className={`max-w-6xl mx-auto space-y-6 ${(isPrinting || viewMode === 'report' || viewMode === 'print_all') ? 'block' : 'hidden'} ${(isPrinting || viewMode === 'print_all') ? 'print-break-after' : ''}`}>
                 
                 <div className="flex justify-between items-end border-b-2 border-zinc-100 pb-4 print:mt-4 print:border-zinc-300">
@@ -410,10 +451,7 @@ export default function HealthDashboardUltimate() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
-                    
-                    {/* LEFT COLUMN */}
                     <div className="space-y-6">
-                        
                         <Card title="1. 身體組成分析 (Body Composition)" icon={Scale} accentColor="border-t-4 border-t-zinc-800">
                             <div className="space-y-4">
                                 <div className="grid grid-cols-4 gap-2 text-center text-xs text-zinc-500 bg-zinc-50 p-3 rounded-xl print:bg-transparent">
@@ -434,7 +472,6 @@ export default function HealthDashboardUltimate() {
                         </Card>
 
                         <Card title="2. 肌肉-脂肪分析 (Muscle-Fat)" icon={Dumbbell}>
-                            {/* 恢復體脂肪重長條圖 */}
                             <InBodyBar label="體重" value={latest.weight?.toFixed(1)} unit="kg" min={50} max={130} ideal={75} color="bg-gradient-to-r from-zinc-300 to-zinc-500" />
                             <InBodyBar label="骨骼肌重" value={latest.skeletalMuscleMass?.toFixed(1)} unit="kg" min={20} max={60} ideal={35} color="bg-gradient-to-r from-zinc-700 to-black" />
                             <InBodyBar label="體脂肪重" value={latest.bodyFatMass?.toFixed(1)} unit="kg" min={5} max={50} ideal={15} color="bg-gradient-to-r from-zinc-200 to-zinc-400" />
@@ -475,7 +512,6 @@ export default function HealthDashboardUltimate() {
                             </div>
                         </Card>
 
-                        {/* 恢復體液均衡詳細數據 */}
                         <Card title="4. 體液均衡 (Water Balance)" icon={Droplets}>
                             <div className="grid grid-cols-3 gap-2 text-center">
                                 <div className="p-3 border border-zinc-100 rounded-xl print:border-zinc-300">
@@ -494,11 +530,8 @@ export default function HealthDashboardUltimate() {
                         </Card>
                     </div>
 
-                    {/* RIGHT COLUMN */}
                     <div className="space-y-6">
-                        
                         <Card title="5. 部位別分析 (Segmental Analysis)" icon={User} accentColor="border-t-4 border-t-emerald-400">
-                            
                             <div className="mb-8 break-inside-avoid">
                                 <h4 className="text-xs font-bold text-center mb-4 flex justify-center items-center gap-2 bg-emerald-50 py-1.5 rounded-lg mx-10 text-emerald-700 print:bg-transparent print:text-black">
                                     <Dumbbell size={14} className="text-emerald-600 print:text-black"/> 骨骼肌分佈 (Muscle Mass)
@@ -510,11 +543,10 @@ export default function HealthDashboardUltimate() {
                                             <PolarAngleAxis dataKey="subject" tick={{ fill: '#52525b', fontSize: 11, fontWeight: 'bold' }} />
                                             <PolarRadiusAxis angle={90} domain={[10, 60]} tick={false} axisLine={false} />
                                             <Radar name="Muscle" dataKey="A" stroke="#10b981" strokeWidth={2} fill="#10b981" fillOpacity={0.4} />
-                                            <Tooltip content={<CustomRadarTooltip />} />
+                                            <Tooltip />
                                         </RadarChart>
                                     </ResponsiveContainer>
                                 </div>
-                                {/* 恢復詳細部位數據列表 */}
                                 <div className="grid grid-cols-5 gap-1 text-center text-[10px] mt-2">
                                     {muscleRadarData.map((data, i) => (
                                         <div key={i} className={`p-1 rounded-lg ${data.subject === '軀幹' ? 'bg-emerald-50 text-emerald-800' : 'bg-zinc-50'} print:bg-transparent`}>
@@ -537,11 +569,10 @@ export default function HealthDashboardUltimate() {
                                             <PolarAngleAxis dataKey="subject" tick={{ fill: '#52525b', fontSize: 11, fontWeight: 'bold' }} />
                                             <PolarRadiusAxis angle={90} domain={[10, 50]} tick={false} axisLine={false} />
                                             <Radar name="Fat" dataKey="A" stroke="#f43f5e" strokeWidth={2} fill="#f43f5e" fillOpacity={0.3} />
-                                            <Tooltip content={<CustomRadarTooltip />} />
+                                            <Tooltip />
                                         </RadarChart>
                                     </ResponsiveContainer>
                                 </div>
-                                {/* 恢復詳細部位數據列表 */}
                                 <div className="grid grid-cols-5 gap-1 text-center text-[10px] mt-2">
                                     {fatRadarData.map((data, i) => (
                                         <div key={i} className={`p-1 rounded-lg ${data.subject === '軀幹' ? 'bg-rose-50 text-rose-800' : 'bg-zinc-50'} print:bg-transparent`}>
@@ -552,10 +583,8 @@ export default function HealthDashboardUltimate() {
                                     ))}
                                 </div>
                             </div>
-
                         </Card>
 
-                        {/* 恢復體型判定 */}
                         <div className="grid grid-cols-2 gap-4">
                             <Card title="體型判定" icon={Grid} className="bg-zinc-800 text-white border-none print:bg-white print:text-black print:border print:border-zinc-300">
                                 <div className="text-center py-6">
@@ -572,7 +601,6 @@ export default function HealthDashboardUltimate() {
                                 </div>
                             </Card>
                         </div>
-
                     </div>
                 </div>
                 
@@ -581,7 +609,7 @@ export default function HealthDashboardUltimate() {
                 </div>
         </div>
 
-        {/* --- PAGE 2: DASHBOARD VIEW (With New AI & Radar Features) --- */}
+        {/* --- PAGE 2: DASHBOARD VIEW (Enhanced) --- */}
         <div className={`max-w-7xl mx-auto ${(isPrinting || viewMode === 'print_all' || viewMode === 'dashboard') ? 'block' : 'hidden'}`}>
                 <div className="bg-white rounded-2xl p-2 border border-zinc-200 shadow-sm flex flex-wrap gap-2 mb-6 print-hidden">
                     {['2021','2022','2023','2024','2025','1Y','3M','ALL'].map(t => (
@@ -589,7 +617,6 @@ export default function HealthDashboardUltimate() {
                     ))}
                 </div>
                 
-                {/* Title for Print - Only shows on Page 2 in print */}
                 <div className="hidden print-block mb-8 mt-4 border-b-2 border-zinc-800 pb-4">
                     <h2 className="text-3xl font-black text-zinc-800 tracking-tight">健康趨勢儀表板 & AI 評估</h2>
                     <p className="text-sm text-zinc-500 font-bold mt-1">Comprehensive Health Assessment Dashboard</p>
@@ -604,13 +631,12 @@ export default function HealthDashboardUltimate() {
                     <MetricCard title="BMI" value={latest.bmi?.toFixed(1)} unit="" change={latest.bmi - first.bmi} status={getStatus('bmi', latest.bmi)} colorClass="text-cyan-600" icon={Scale} />
                 </div>
 
-                {/* AI 評估報告區塊 - 新增至儀表板 */}
                 <Card title="AI 綜合健康評估報告 (Comprehensive Assessment)" icon={Brain} className="mb-6 bg-gradient-to-br from-zinc-900 to-zinc-800 text-white border-none print:bg-white print:text-black print:border print:border-zinc-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
                         <div className="space-y-2">
                             <h4 className="font-bold text-cyan-400 flex items-center gap-2 print:text-black"><Scale size={16}/> 體重管理</h4>
                             <p className="text-zinc-300 leading-relaxed print:text-zinc-700">
-                                目前 BMI 為 <b className="text-white print:text-black">{latest.bmi?.toFixed(1)}</b>，屬於<b className="text-amber-400 print:text-black">{bmiCategory}</b>區間。
+                                目前 BMI 為 <b className="text-white print:text-black">{latest.bmi?.toFixed(1)}</b>，屬於<b className="text-amber-400 print:text-black">{getBMICategory(latest.bmi)}</b>區間。
                                 與初期相比，體重變化 <b className={weightChange > 0 ? "text-rose-400" : "text-emerald-400"}>{weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)}kg</b>。
                             </p>
                         </div>
@@ -639,52 +665,67 @@ export default function HealthDashboardUltimate() {
                     </div>
                 </Card>
 
-                {/* 深度分析儀表板 - 新增至儀表板 */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                     <Card title="代謝機能分析" icon={Zap}>
-                        <div className="flex justify-between items-center h-full">
-                             <div>
-                                <div className="text-sm text-zinc-500">基礎代謝率 (BMR)</div>
-                                <div className="text-2xl font-black text-cyan-600">{latest.bmr}</div>
-                             </div>
-                             <div className="text-right">
-                                <div className="text-sm text-zinc-500">身體年齡</div>
-                                <div className="text-2xl font-black text-zinc-800">{latest.bodyAge} <span className="text-sm">歲</span></div>
-                             </div>
-                        </div>
-                     </Card>
-                     <Card title="部位別體態深度分析" icon={User} className="lg:col-span-2">
-                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <div className="text-xs text-center text-zinc-400 mb-2">骨骼肌分佈 (%)</div>
-                                <div className="h-[120px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={muscleRadarData}>
-                                            <PolarGrid gridType="polygon" />
-                                            <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9 }} />
-                                            <PolarRadiusAxis angle={90} domain={[10, 60]} tick={false} axisLine={false} />
-                                            <Radar name="Muscle" dataKey="A" stroke="#10b981" strokeWidth={2} fill="#10b981" fillOpacity={0.4} />
-                                            <Tooltip content={<CustomRadarTooltip />} />
-                                        </RadarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-xs text-center text-zinc-400 mb-2">皮下脂肪分佈 (%)</div>
-                                <div className="h-[120px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={fatRadarData}>
-                                            <PolarGrid gridType="polygon" />
-                                            <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9 }} />
-                                            <PolarRadiusAxis angle={90} domain={[10, 50]} tick={false} axisLine={false} />
-                                            <Radar name="Fat" dataKey="A" stroke="#f43f5e" strokeWidth={2} fill="#f43f5e" fillOpacity={0.3} />
-                                            <Tooltip content={<CustomRadarTooltip />} />
-                                        </RadarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
+                {/* --- 新增的四個圖表區塊 --- */}
+                
+                {/* 1. 代謝機能分析 */}
+                <Card title="1. 代謝機能分析 (Metabolic Analysis)" icon={Zap} className="mb-6">
+                    <div className="h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart data={displayData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
+                                <XAxis dataKey="date" tick={{fontSize: 10}} />
+                                <YAxis yAxisId="left" orientation="left" stroke="#0891b2" label={{ value: 'BMR (kcal)', angle: -90, position: 'insideLeft' }} domain={['auto', 'auto']} />
+                                <YAxis yAxisId="right" orientation="right" stroke="#71717a" label={{ value: '身體年齡', angle: 90, position: 'insideRight' }} domain={['dataMin - 5', 'dataMax + 5']} />
+                                <Tooltip />
+                                <Legend />
+                                <Area yAxisId="left" type="monotone" dataKey="bmr" name="基礎代謝率" fill="#cffafe" stroke="#06b6d4" strokeWidth={2} />
+                                <Line yAxisId="right" type="monotone" dataKey="bodyAge" name="身體年齡" stroke="#52525b" strokeWidth={3} dot={{r: 4}} />
+                            </ComposedChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    {/* 2. 肌肉平衡雷達 */}
+                    <Card title="2. 肌肉平衡雷達" icon={Dumbbell}>
+                         <div className="text-xs text-center text-zinc-400 mb-4">各部位骨骼肌率分佈 (%)</div>
+                         <div className="h-[200px] flex justify-center items-center">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <RadarChart cx="50%" cy="50%" outerRadius="75%" data={triangleRadarData}>
+                                    <PolarGrid />
+                                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fontWeight: 'bold' }} />
+                                    <PolarRadiusAxis angle={30} domain={[0, 60]} tick={false} />
+                                    <Radar name="Muscle" dataKey="A" stroke="#3b82f6" fill="#60a5fa" fillOpacity={0.6} />
+                                    <Tooltip />
+                                </RadarChart>
+                            </ResponsiveContainer>
                          </div>
-                     </Card>
+                    </Card>
+
+                    {/* 3. 皮下脂肪分佈 */}
+                    <Card title="3. 皮下脂肪分佈" icon={Layout}>
+                        <div className="text-xs text-center text-zinc-400 mb-4">各部位皮下脂肪率 (%)</div>
+                        <div className="h-[200px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={fatBarData} margin={{top: 20, right: 0, bottom: 0, left: 0}}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="name" tick={{fontSize: 12}} />
+                                    <Tooltip cursor={{fill: 'transparent'}} />
+                                    <Bar dataKey="value" name="脂肪率" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#666', fontSize: 12 }}>
+                                        {fatBarData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </Card>
+
+                    {/* 4. BMI 落點分析 */}
+                    <Card title="4. BMI 肥胖落點分析" icon={Scale}>
+                        <div className="text-xs text-center text-zinc-400 mb-2">目前 BMI 位置</div>
+                        <BmiGauge bmi={latest.bmi} />
+                    </Card>
                 </div>
 
                 <div className="h-[400px] bg-white p-6 rounded-3xl shadow-sm border border-zinc-100 break-inside-avoid print:h-[500px] print:border-zinc-300">
