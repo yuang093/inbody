@@ -3,7 +3,7 @@ import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   ComposedChart, BarChart, Bar, ReferenceLine, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
-import { Upload, Activity, TrendingDown, TrendingUp, Scale, AlertCircle, Info, User, CheckCircle, Heart, Zap, Layout, FileText, Droplets, Bone, Dumbbell, Grid, Pentagon, Ruler, Printer, X, Download } from 'lucide-react';
+import { Upload, Activity, TrendingDown, TrendingUp, Scale, AlertCircle, Info, User, CheckCircle, Heart, Zap, Layout, FileText, Droplets, Bone, Dumbbell, Grid, Ruler, Printer, X, Download } from 'lucide-react';
 
 // --- Helper Functions & Constants ---
 
@@ -585,7 +585,7 @@ export default function HealthDashboardUltimate() {
 
                             <div className="border-t border-slate-100 pt-6 break-inside-avoid">
                                 <h4 className="text-sm font-bold text-center mb-2 flex justify-center items-center gap-2">
-                                    <Pentagon size={16} className="text-rose-500 print:text-black"/> 皮下脂肪分佈 (Fat)
+                                    <Zap size={16} className="text-rose-500 print:text-black"/> 皮下脂肪分佈 (Fat)
                                 </h4>
                                 <div className="h-[250px] relative">
                                     <ResponsiveContainer width="100%" height="100%">
