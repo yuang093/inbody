@@ -142,8 +142,14 @@ export default function HealthDashboardUltimate() {
   const [filteredData, setFilteredData] = useState([]);
   const [timeRange, setTimeRange] = useState('ALL');
   const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard', 'report', or 'print_all'
-  const [gender, setGender] = useState('male');
-  const [userHeight, setUserHeight] = useState('');
+  const [gender, setGender] = useState(localStorage.getItem('inbody_gender') || 'male');
+  const [userHeight, setUserHeight] = useState(localStorage.getItem('inbody_height') || '');
+
+// 加入這段 useEffect
+  useEffect(() => {
+    localStorage.setItem('inbody_gender', gender);
+    localStorage.setItem('inbody_height', userHeight);
+  }, [gender, userHeight]);
   
   // Printing State
   const [isPrinting, setIsPrinting] = useState(false);
