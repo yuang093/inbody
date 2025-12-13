@@ -124,19 +124,55 @@ const InBodyHeader = () => {
 const InBodyAnalysisRow = ({ label, value, unit, standard100, config }) => {
   const { min, max, lowNormal, highNormal, ticks } = config;
   
-  // 計算當前數值是標準值的百分之幾
-  // 如果 standard100 為 0 或未定義，避免除以零錯誤
-  const safeStandard = standard100 && standard100 > 0 ? standard100 : 1;
-  const currentPercent = (value / safeStandard) * 100;
+  // 計算當前數值是標準值的百分之幾 (InBody 邏輯通常以100%為基準，但這裡我們直接用數值對應刻度)
+  // 為了簡化與對齊刻度，我們這裡直接比較 value 與 tick 的數值關係
+  // 如果需要轉換成 %, 請傳入轉換後的 value，這裡假設 value 已經是可以直接跟 ticks 比較的數值 (或百分比)
+  // *註：原本代碼有做 / standard100 的轉換，但因為您的刻度是固定的 % (如 100, 115)，
+  // 為了精確對齊照片，我們假設這裡的 value 已經轉化為相對於標準體重/肌肉的 % 數值
+  // 但為了相容原本邏輯，我們做一個簡單的正規化：
   
-  // 計算 CSS 寬度位置的 Helper
-  const getPosition = (pct) => {
-    const pos = ((pct - min) / (max - min)) * 100;
-    return Math.min(Math.max(pos, 0), 100);
+  const safeStandard = standard100 && standard100 > 0 ? standard100 : 1;
+  // 這裡計算出的 currentVal 代表 "百分比數值" (例如 78.5 代表 78.5%)
+  // 如果傳進來的 value 是絕對重量(kg)，我們需轉為百分比。
+  // 但依照您的截圖，Bar 旁邊的數字是 "78.5" (kg) 但刻度是 %。
+  // 這裡為了不更動太多架構，我們假設傳入的 ticks 是 %，而我們顯示的是 kg。
+  // 我們需要計算 currentPercent 來決定 Bar 的長度。
+  const currentPercent = (value / safeStandard) * 100;
+
+  // --- 核心邏輯：分段映射函數 (Piecewise Mapping) ---
+  // 這能讓不同範圍的數值，在視覺上鎖定在同一個位置
+  const getAlignedPosition = (val) => {
+    // 定義視覺錨點 (Visual Anchors in CSS %)
+    const POS_START = 0;
+    const POS_LOW = 28;  // 低標線 (80, 90, 80) 鎖定在 28%
+    const POS_HIGH = 72; // 高標線 (115, 110, 160) 鎖定在 72%
+    const POS_END = 100;
+
+    if (val <= lowNormal) {
+      // 區段 1: Min ~ LowNormal -> 0% ~ 28%
+      return POS_START + ((val - min) / (lowNormal - min)) * (POS_LOW - POS_START);
+    } else if (val <= highNormal) {
+      // 區段 2: LowNormal ~ HighNormal -> 28% ~ 72% (正常範圍)
+      return POS_LOW + ((val - lowNormal) / (highNormal - lowNormal)) * (POS_HIGH - POS_LOW);
+    } else {
+      // 區段 3: HighNormal ~ Max -> 72% ~ 100%
+      return POS_HIGH + ((val - highNormal) / (max - highNormal)) * (POS_END - POS_HIGH);
+    }
   };
 
+  // 計算實際數值的顯示位置
+  // 邊界檢查：確保不會超出 0-100%
+  let barPos = getAlignedPosition(currentPercent);
+  barPos = Math.min(Math.max(barPos, 0), 100);
+
+  // 計算正常範圍的數值 (顯示在右側)
   const normalRangeMin = (safeStandard * (lowNormal / 100)).toFixed(1);
   const normalRangeMax = (safeStandard * (highNormal / 100)).toFixed(1);
+
+  // 定義視覺上的正常範圍起始與結束 (用於底色)
+  // 因為我們用了分段映射，這兩個值是固定的
+  const visualLow = 28; 
+  const visualHigh = 72;
 
   return (
     <div className="mb-6 last:mb-0 break-inside-avoid print:mb-3">
@@ -151,45 +187,55 @@ const InBodyAnalysisRow = ({ label, value, unit, standard100, config }) => {
         <div className="flex-1 relative">
           
           {/* 上方刻度尺 (Percentage Ticks) */}
-          <div className="h-4 w-full relative border-b border-zinc-300 mb-1">
-            {ticks.map((tick) => (
-              <div 
-                key={tick} 
-                className="absolute bottom-0 transform -translate-x-1/2 flex flex-col items-center"
-                style={{ left: `${getPosition(tick)}%` }}
-              >
-                <span className="text-[9px] text-zinc-400 mb-0.5 print:text-[7px]">{tick}</span>
-                <div className="w-px h-1 bg-zinc-300"></div>
-              </div>
-            ))}
+          <div className="h-5 w-full relative border-b border-zinc-400 mb-1">
+            {ticks.map((tick) => {
+              // 刻度位置也必須通過 getAlignedPosition 計算，才能與 Bar 對齊
+              const tickPos = Math.min(Math.max(getAlignedPosition(tick), 0), 100);
+              return (
+                <div 
+                  key={tick} 
+                  className="absolute bottom-0 transform -translate-x-1/2 flex flex-col items-center"
+                  style={{ left: `${tickPos}%` }}
+                >
+                  <span className="text-[9px] text-zinc-500 font-medium mb-1 print:text-[7px]">{tick}</span>
+                  <div className="w-px h-1.5 bg-zinc-400"></div>
+                </div>
+              );
+            })}
           </div>
 
           {/* 長條圖軌道 */}
-          <div className="h-3 bg-zinc-100 rounded-sm relative w-full overflow-hidden shadow-inner print:bg-white print:border print:border-zinc-300 print:h-2.5">
-            {/* 正常範圍的灰色背景區塊 */}
+          <div className="h-4 bg-transparent relative w-full mt-2">
+            
+            {/* 1. 正常範圍的底色 (Green Zone) - 放在最底層 */}
+            {/* 視覺上鎖定在 28% 到 72% */}
             <div 
-              className="absolute top-0 bottom-0 bg-zinc-200/80 border-x border-white/50 print:bg-zinc-200"
+              className="absolute top-[-28px] bottom-[-4px] bg-emerald-500/10 border-x border-emerald-500/20 z-0 print:bg-emerald-100"
               style={{
-                left: `${getPosition(lowNormal)}%`,
-                width: `${getPosition(highNormal) - getPosition(lowNormal)}%`
+                left: `${visualLow}%`,
+                width: `${visualHigh - visualLow}%`
               }}
             ></div>
 
-            {/* 實際數值條 */}
+            {/* 2. 灰色背景軌道 (非正常範圍) - 這裡可以選擇不顯示，或是顯示淡灰色條 */}
+             <div className="absolute top-1 bottom-1 left-0 right-0 bg-zinc-100 rounded-full -z-10"></div>
+
+            {/* 3. 實際數值條 (Black Bar) */}
             <div 
-              className="absolute top-1 bottom-1 left-0.5 bg-zinc-700 rounded-full shadow transition-all duration-1000 z-10 print:bg-black print:top-0.5 print:bottom-0.5"
-              style={{ width: `${getPosition(currentPercent)}%` }}
+              className="absolute top-1.5 bottom-1.5 left-0.5 bg-zinc-800 rounded-full shadow transition-all duration-1000 z-10 print:bg-black"
+              style={{ width: `${barPos}%` }}
             >
-              <span className="absolute right-0 top-1/2 transform translate-x-full -translate-y-1/2 text-xs font-black text-zinc-800 pl-1 whitespace-nowrap print:text-[9px] print:text-black">
+              {/* 數值顯示在 Bar 的右側 */}
+              <span className="absolute right-0 top-1/2 transform translate-x-full -translate-y-1/2 text-lg font-normal text-zinc-800 pl-2 whitespace-nowrap print:text-sm print:text-black">
                 {value}
               </span>
             </div>
           </div>
         </div>
 
-        {/* 右側正常範圍數值 */}
+        {/* 右側正常範圍數值 (保留原本架構) */}
         <div className="w-24 shrink-0 text-right pl-2 pb-1 hidden md:block print:hidden">
-          <div className="text-xs font-medium text-zinc-500">{normalRangeMin}~{normalRangeMax}</div>
+          <div className="text-xs font-medium text-zinc-400">目標: {normalRangeMin}~{normalRangeMax}</div>
         </div>
       </div>
     </div>
@@ -481,21 +527,23 @@ export default function HealthDashboardUltimate() {
   const standardFat = standardWeight * (isMale ? 0.15 : 0.23);
 
   // --- 刻度與範圍設定 ---
+// --- 刻度與範圍設定 (修正為對齊版) ---
   const chartConfigs = {
     weight: {
-      min: 50, max: 200, 
-      lowNormal: 85, highNormal: 115,
-      ticks: [55, 70, 85, 100, 115, 130, 145, 160, 175, 190, 205]
+      // 範圍：50 ~ 205 (對應刻度)
+      min: 50, max: 205, 
+      lowNormal: 80, highNormal: 115, // 依據您的要求: 80 ~ 115
+      ticks: [50, 65, 80, 100, 115, 145, 205] // 依照照片範例刻度
     },
     muscle: {
-      min: 60, max: 180,
-      lowNormal: 90, highNormal: 110,
-      ticks: [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170]
+      min: 60, max: 140,
+      lowNormal: 90, highNormal: 110, // 依據您的要求: 90 ~ 110
+      ticks: [60, 75, 90, 100, 110, 120, 140]
     },
     fat: {
-      min: 50, max: 400, // 體脂肪範圍較大
-      lowNormal: 80, highNormal: 160,
-      ticks: [40, 60, 80, 100, 160, 220, 280, 340, 400]
+      min: 40, max: 400,
+      lowNormal: 80, highNormal: 160, // 依據您的要求: 80 ~ 160
+      ticks: [40, 60, 80, 100, 160, 220, 400]
     }
   };
 
