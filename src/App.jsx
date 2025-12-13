@@ -105,23 +105,91 @@ const MetricCard = ({ title, value, unit, change, status, icon: Icon, colorClass
   );
 };
 
-const InBodyBar = ({ label, value, unit, min, max, ideal, color = "bg-zinc-800", markLabel = true }) => {
-  const rangeMin = min * 0.6;
-  const rangeMax = max * 1.4;
-  const percentage = Math.min(Math.max(((value - rangeMin) / (rangeMax - rangeMin)) * 100, 0), 100);
-  const idealPos = ((ideal - rangeMin) / (rangeMax - rangeMin)) * 100;
+// --- InBody Style Chart Components ---
+
+const InBodyHeader = () => {
+  return (
+    <div className="flex text-xs font-bold text-zinc-500 mb-2 border-b border-zinc-200 pb-2 print:text-[10px]">
+      <div className="w-20 md:w-24 shrink-0 text-right pr-4">項目</div>
+      <div className="flex-1 grid grid-cols-12 gap-0 text-center relative">
+        <div className="col-span-3 text-center pl-4">低</div>
+        <div className="col-span-4 text-center">正常</div>
+        <div className="col-span-5 text-center">高</div>
+      </div>
+      <div className="w-24 text-right pl-2 hidden md:block print:hidden">正常範圍</div>
+    </div>
+  );
+};
+
+const InBodyAnalysisRow = ({ label, value, unit, standard100, config }) => {
+  const { min, max, lowNormal, highNormal, ticks } = config;
+  
+  // 計算當前數值是標準值的百分之幾
+  // 如果 standard100 為 0 或未定義，避免除以零錯誤
+  const safeStandard = standard100 && standard100 > 0 ? standard100 : 1;
+  const currentPercent = (value / safeStandard) * 100;
+  
+  // 計算 CSS 寬度位置的 Helper
+  const getPosition = (pct) => {
+    const pos = ((pct - min) / (max - min)) * 100;
+    return Math.min(Math.max(pos, 0), 100);
+  };
+
+  const normalRangeMin = (safeStandard * (lowNormal / 100)).toFixed(1);
+  const normalRangeMax = (safeStandard * (highNormal / 100)).toFixed(1);
 
   return (
-    <div className="mb-4 break-inside-avoid print:mb-2">
-      <div className="flex justify-between text-sm mb-1 font-bold text-zinc-600 print:text-xs">
-        <span className="w-24 text-right pr-4">{label}</span>
-        <div className="flex-1 relative h-4 bg-zinc-100 rounded-full w-full overflow-hidden print:bg-white print:border print:border-zinc-300">
-           <div className={`absolute top-0 bottom-0 left-0 rounded-full transition-all duration-1000 ${color} print:bg-zinc-600`} style={{ width: `${percentage}%`, printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}></div>
-           <div className="absolute top-0 bottom-0 flex items-center" style={{ left: `${percentage + 2}%` }}>
-             <span className="text-xs font-bold text-zinc-700 whitespace-nowrap print:text-[10px]">{value} {unit}</span>
-           </div>
-           <div className="absolute -top-1 bottom-0 w-0.5 bg-zinc-400 opacity-50 print:bg-black" style={{ left: `${idealPos}%` }}></div>
-           {markLabel && <div className="absolute -top-4 text-[9px] text-zinc-400 transform -translate-x-1/2 print:hidden" style={{ left: `${idealPos}%` }}>標準</div>}
+    <div className="mb-6 last:mb-0 break-inside-avoid print:mb-3">
+      <div className="flex items-end">
+        {/* 左側標籤 */}
+        <div className="w-20 md:w-24 shrink-0 text-right pr-4 pb-1 font-bold text-zinc-700 text-sm print:text-xs">
+          {label}
+          <span className="text-[10px] text-zinc-400 font-normal block print:text-[8px]">({unit})</span>
+        </div>
+
+        {/* 中間圖表區 */}
+        <div className="flex-1 relative">
+          
+          {/* 上方刻度尺 (Percentage Ticks) */}
+          <div className="h-4 w-full relative border-b border-zinc-300 mb-1">
+            {ticks.map((tick) => (
+              <div 
+                key={tick} 
+                className="absolute bottom-0 transform -translate-x-1/2 flex flex-col items-center"
+                style={{ left: `${getPosition(tick)}%` }}
+              >
+                <span className="text-[9px] text-zinc-400 mb-0.5 print:text-[7px]">{tick}</span>
+                <div className="w-px h-1 bg-zinc-300"></div>
+              </div>
+            ))}
+          </div>
+
+          {/* 長條圖軌道 */}
+          <div className="h-3 bg-zinc-100 rounded-sm relative w-full overflow-hidden shadow-inner print:bg-white print:border print:border-zinc-300 print:h-2.5">
+            {/* 正常範圍的灰色背景區塊 */}
+            <div 
+              className="absolute top-0 bottom-0 bg-zinc-200/80 border-x border-white/50 print:bg-zinc-200"
+              style={{
+                left: `${getPosition(lowNormal)}%`,
+                width: `${getPosition(highNormal) - getPosition(lowNormal)}%`
+              }}
+            ></div>
+
+            {/* 實際數值條 */}
+            <div 
+              className="absolute top-1 bottom-1 left-0.5 bg-zinc-700 rounded-full shadow transition-all duration-1000 z-10 print:bg-black print:top-0.5 print:bottom-0.5"
+              style={{ width: `${getPosition(currentPercent)}%` }}
+            >
+              <span className="absolute right-0 top-1/2 transform translate-x-full -translate-y-1/2 text-xs font-black text-zinc-800 pl-1 whitespace-nowrap print:text-[9px] print:text-black">
+                {value}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 右側正常範圍數值 */}
+        <div className="w-24 shrink-0 text-right pl-2 pb-1 hidden md:block print:hidden">
+          <div className="text-xs font-medium text-zinc-500">{normalRangeMin}~{normalRangeMax}</div>
         </div>
       </div>
     </div>
@@ -403,6 +471,34 @@ export default function HealthDashboardUltimate() {
       { name: '雙腳', value: latest.legFatPct, fill: '#ea580c' },
   ];
 
+  // --- 計算 InBody 標準值 (100% Reference) ---
+  const heightM = userHeight ? parseFloat(userHeight) / 100 : 1.736; // 預設 173.6cm
+  const standardWeight = heightM * heightM * 22; // BMI 22 為標準體重 (100%)
+  
+  // 男性標準參數 (概略模擬 InBody 邏輯)
+  const isMale = gender === 'male';
+  const standardMuscle = standardWeight * (isMale ? 0.45 : 0.39);
+  const standardFat = standardWeight * (isMale ? 0.15 : 0.23);
+
+  // --- 刻度與範圍設定 ---
+  const chartConfigs = {
+    weight: {
+      min: 50, max: 200, 
+      lowNormal: 85, highNormal: 115,
+      ticks: [55, 70, 85, 100, 115, 130, 145, 160, 175, 190, 205]
+    },
+    muscle: {
+      min: 60, max: 180,
+      lowNormal: 90, highNormal: 110,
+      ticks: [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170]
+    },
+    fat: {
+      min: 50, max: 400, // 體脂肪範圍較大
+      lowNormal: 80, highNormal: 160,
+      ticks: [40, 60, 80, 100, 160, 220, 280, 340, 400]
+    }
+  };
+
   if (rawData.length === 0) return <div className="p-10 text-center text-zinc-500 animate-pulse">數據分析中...</div>;
 
   return (
@@ -492,15 +588,58 @@ export default function HealthDashboardUltimate() {
                             </div>
                         </Card>
 
+                        {/* --- 2. 肌肉-脂肪分析 (InBody Style) --- */}
                         <Card title="2. 肌肉-脂肪分析 (Muscle-Fat)" icon={Dumbbell}>
-                            <InBodyBar label="體重" value={latest.weight?.toFixed(1)} unit="kg" min={50} max={130} ideal={75} color="bg-gradient-to-r from-zinc-300 to-zinc-500" />
-                            <InBodyBar label="骨骼肌重" value={latest.skeletalMuscleMass?.toFixed(1)} unit="kg" min={20} max={60} ideal={35} color="bg-gradient-to-r from-zinc-700 to-black" />
-                            <InBodyBar label="體脂肪重" value={latest.bodyFatMass?.toFixed(1)} unit="kg" min={5} max={50} ideal={15} color="bg-gradient-to-r from-zinc-200 to-zinc-400" />
+                            <div className="pt-2">
+                                <InBodyHeader />
+                                <InBodyAnalysisRow 
+                                    label="體重" 
+                                    value={latest.weight?.toFixed(1)} 
+                                    unit="kg"
+                                    standard100={standardWeight}
+                                    config={chartConfigs.weight}
+                                />
+                                <InBodyAnalysisRow 
+                                    label="骨骼肌重" 
+                                    value={latest.skeletalMuscleMass?.toFixed(1)} 
+                                    unit="kg"
+                                    standard100={standardMuscle}
+                                    config={chartConfigs.muscle}
+                                />
+                                <InBodyAnalysisRow 
+                                    label="體脂肪重" 
+                                    value={latest.bodyFatMass?.toFixed(1)} 
+                                    unit="kg"
+                                    standard100={standardFat}
+                                    config={chartConfigs.fat}
+                                />
+                            </div>
                         </Card>
 
                         <Card title="3. 肥胖與肌肉診斷 (Obesity & FFMI)" icon={AlertCircle}>
-                            <InBodyBar label="BMI" value={latest.bmi?.toFixed(1)} unit="" min={10} max={50} ideal={22} color="bg-zinc-300" markLabel={false} />
-                            <InBodyBar label="體脂率" value={latest.bodyFatPercent?.toFixed(1)} unit="%" min={5} max={60} ideal={20} color="bg-zinc-300" markLabel={false} />
+                            {/* 這裡保留原本的樣式，因為需求僅修改 Card 2 */}
+                             <div className="mb-4">
+                                <div className="flex justify-between text-sm mb-1 font-bold text-zinc-600">
+                                    <span className="w-24 text-right pr-4">BMI</span>
+                                    <div className="flex-1 relative h-4 bg-zinc-100 rounded-full w-full overflow-hidden print:bg-white print:border print:border-zinc-300">
+                                        <div className="absolute top-0 bottom-0 left-0 bg-zinc-300" style={{ width: `${Math.min(latest.bmi / 50 * 100, 100)}%` }}></div>
+                                        <div className="absolute top-0 bottom-0 flex items-center" style={{ left: `${Math.min(latest.bmi / 50 * 100, 100) + 2}%` }}>
+                                             <span className="text-xs font-bold text-zinc-700">{latest.bmi?.toFixed(1)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                             </div>
+                             <div className="mb-4">
+                                <div className="flex justify-between text-sm mb-1 font-bold text-zinc-600">
+                                    <span className="w-24 text-right pr-4">體脂率</span>
+                                    <div className="flex-1 relative h-4 bg-zinc-100 rounded-full w-full overflow-hidden print:bg-white print:border print:border-zinc-300">
+                                        <div className="absolute top-0 bottom-0 left-0 bg-zinc-300" style={{ width: `${Math.min(latest.bodyFatPercent / 60 * 100, 100)}%` }}></div>
+                                        <div className="absolute top-0 bottom-0 flex items-center" style={{ left: `${Math.min(latest.bodyFatPercent / 60 * 100, 100) + 2}%` }}>
+                                             <span className="text-xs font-bold text-zinc-700">{latest.bodyFatPercent?.toFixed(1)} %</span>
+                                        </div>
+                                    </div>
+                                </div>
+                             </div>
                             
                             <div className="mt-6 pt-4 border-t border-zinc-100">
                                 <div className="flex justify-between items-center mb-3">
@@ -533,7 +672,6 @@ export default function HealthDashboardUltimate() {
                             </div>
                         </Card>
 
-                        {/* 新增了下方說明的體液均衡卡片 */}
                         <Card title="4. 體液均衡 (Water Balance)" icon={Droplets}>
                             <div className="grid grid-cols-3 gap-2 text-center mb-3">
                                 <div className="p-3 border border-zinc-100 rounded-xl print:border-zinc-300">
@@ -665,7 +803,7 @@ export default function HealthDashboardUltimate() {
                     <MetricCard title="BMI" value={latest.bmi?.toFixed(1)} unit="" change={latest.bmi - first.bmi} status={getStatus('bmi', latest.bmi)} colorClass="text-cyan-600" icon={Scale} />
                 </div>
 
-                {/* AI 評估報告區塊 - White Background */}
+                {/* AI 評估報告區塊 */}
                 <Card title="AI 綜合健康評估報告 (Comprehensive Assessment)" icon={Brain} className="mb-6 bg-white border-zinc-200 print:border-zinc-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
                         <div className="space-y-2">
